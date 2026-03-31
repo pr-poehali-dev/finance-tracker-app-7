@@ -5,15 +5,22 @@ interface ParentPanelProps {
   state: KidsState;
   badges: Array<{ title: string; emoji: string; unlocked: boolean }>;
   onAddAllowance: (save: number, spend: number, share: number) => void;
+  onChangePin: (newPin: string) => void;
   onClose: () => void;
 }
 
-export default function ParentPanel({ state, badges, onAddAllowance, onClose }: ParentPanelProps) {
+export default function ParentPanel({ state, badges, onAddAllowance, onChangePin, onClose }: ParentPanelProps) {
   const [pin, setPin] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [pinError, setPinError] = useState(false);
   const [allowance, setAllowance] = useState({ save: '', spend: '', share: '' });
   const [added, setAdded] = useState(false);
+  const [changingPin, setChangingPin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinStep, setPinStep] = useState<'new' | 'confirm'>('new');
+  const [pinChanged, setPinChanged] = useState(false);
+  const [pinMismatch, setPinMismatch] = useState(false);
 
   function handlePin() {
     if (pin === state.parentPin) {
@@ -22,6 +29,28 @@ export default function ParentPanel({ state, badges, onAddAllowance, onClose }: 
     } else {
       setPinError(true);
       setPin('');
+    }
+  }
+
+  function handlePinKeyPress(k: number | string) {
+    const target = pinStep === 'new' ? newPin : confirmPin;
+    const setter = pinStep === 'new' ? setNewPin : setConfirmPin;
+    if (k === '⌫') { setter(p => p.slice(0, -1)); return; }
+    if (k === '' || target.length >= 4) return;
+    const next = target + k;
+    setter(next);
+    if (next.length === 4 && pinStep === 'new') {
+      setPinStep('confirm');
+      setPinMismatch(false);
+    } else if (next.length === 4 && pinStep === 'confirm') {
+      if (next === newPin) {
+        onChangePin(newPin);
+        setPinChanged(true);
+        setTimeout(() => { setChangingPin(false); setPinChanged(false); setNewPin(''); setConfirmPin(''); setPinStep('new'); }, 2000);
+      } else {
+        setPinMismatch(true);
+        setConfirmPin('');
+      }
     }
   }
 
@@ -149,6 +178,55 @@ export default function ParentPanel({ state, badges, onAddAllowance, onClose }: 
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Change PIN */}
+          {!changingPin ? (
+            <button
+              onClick={() => { setChangingPin(true); setNewPin(''); setConfirmPin(''); setPinStep('new'); setPinMismatch(false); }}
+              className="w-full mb-4 py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-105"
+              style={{ background: '#f3f4f6', color: '#555', border: '2px solid #e5e7eb' }}
+            >
+              🔐 Изменить PIN-код
+            </button>
+          ) : (
+            <div className="mb-4 bg-orange-50 rounded-2xl p-4" style={{ border: '2px solid #FF9F4A44' }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-black text-gray-700">
+                  {pinChanged ? '✅ PIN изменён!' : pinStep === 'new' ? '🔐 Новый PIN-код' : '🔁 Повтори PIN-код'}
+                </p>
+                <button onClick={() => { setChangingPin(false); setNewPin(''); setConfirmPin(''); setPinStep('new'); }}
+                  className="text-gray-400 text-lg font-bold">×</button>
+              </div>
+              {pinMismatch && <p className="text-red-500 text-xs font-bold mb-2">PIN не совпадает, попробуй сно��а</p>}
+              {!pinChanged && (
+                <>
+                  <div className="flex justify-center gap-2 mb-3">
+                    {[1,2,3,4].map(i => {
+                      const current = pinStep === 'new' ? newPin : confirmPin;
+                      return (
+                        <div key={i} className="w-9 h-9 rounded-xl border-2 flex items-center justify-center text-lg font-black"
+                          style={{ borderColor: current.length >= i ? '#FF9F4A' : '#e5e7eb', background: current.length >= i ? '#fff8ee' : 'white' }}>
+                          {current.length >= i ? '●' : ''}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map((k, i) => (
+                      <button key={i} onClick={() => handlePinKeyPress(k)} disabled={k === ''}
+                        className="py-2.5 rounded-xl text-base font-black transition-all hover:scale-105 active:scale-95 disabled:invisible"
+                        style={{ background: k === '⌫' ? '#fee2e2' : '#f3f4f6', color: k === '⌫' ? '#ef4444' : '#333' }}>
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {pinChanged && (
+                <p className="text-center text-green-600 text-sm font-bold">PIN успешно обновлён 🎉</p>
+              )}
             </div>
           )}
 

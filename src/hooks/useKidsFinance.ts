@@ -168,6 +168,10 @@ export function useKidsFinance() {
     unlockBadge('scenario_player');
   }, [unlockBadge]);
 
+  const changePin = useCallback((newPin: string) => {
+    setState(prev => ({ ...prev, parentPin: newPin }));
+  }, []);
+
   const addAllowance = useCallback((save: number, spend: number, share: number) => {
     setState(prev => ({
       ...prev,
@@ -215,6 +219,7 @@ export function useKidsFinance() {
     markQuizCompleted,
     markScenarioCompleted,
     addAllowance,
+    changePin,
     totalCoins,
     badges,
     saverStreak,

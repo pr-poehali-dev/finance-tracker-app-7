@@ -35,6 +35,7 @@ export default function KidsApp() {
     markQuizCompleted,
     markScenarioCompleted,
     addAllowance,
+    changePin,
     totalCoins,
     badges,
     saverStreak,
@@ -171,6 +172,7 @@ export default function KidsApp() {
           state={state}
           badges={badges}
           onAddAllowance={addAllowance}
+          onChangePin={changePin}
           onClose={() => setShowParent(false)}
         />
       )}
